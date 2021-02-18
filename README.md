@@ -5,7 +5,7 @@
 > Api permettant de se connecter à Ecole Directe et de :</br>
 > - Récuperer les devoirs
 > - Récuperer les notes
-> - Ne pas faire trop de requetes sinon votre ip sera bloqué
+> - Utiliser un proxy pour la connection
 
 ### 📍 PREREQUIS : 
 
