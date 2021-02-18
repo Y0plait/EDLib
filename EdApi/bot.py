@@ -10,7 +10,7 @@ class EdBot:
     A bot to connect to the EcoleDirecte Api with requests
     """
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, proxy_address=None, proxy_port=None):
         """
         Connect to the api with username and password
         :username:  username of user's account
@@ -20,6 +20,10 @@ class EdBot:
         Else returns False
         """
 
+        self.proxy = {
+            "https": "https://"+ proxy_address + ":" + proxy_port
+        }
+
         api_login_url = 'https://api.ecoledirecte.com/v3/login.awp'
         unformatted_login = {
             'identifiant': username,
@@ -27,7 +31,7 @@ class EdBot:
             'acceptationCharte': True
         }
 
-        self.response = self.request_post(api_login_url, unformatted_login)
+        self.response = self.request_post(api_login_url, unformatted_login, proxy=self.proxy)
 
         try:
             self.token = str(self.response['token'])
@@ -37,13 +41,16 @@ class EdBot:
             raise LoginException('Please check your login ...')
             pass
 
-    def request_post(self, url, unformatted_payload=None, headers=None):
+    def request_post(self, url, unformatted_payload=None, headers=None, proxy=None):
         """
         Method to connect to the EcoleDirecte Api
         :url: url to connect
         :unformatted_payload: raw payload if None default one will be used (token)
         :headers: headers if None default will be used
+        :proxy: proxy if you wn=ant to use one please specify the port
         :return: raw data from the request
+
+        https://www.proxynova.com/proxy-server-list/country-fr/
         """
 
 
@@ -59,8 +66,9 @@ class EdBot:
         elif unformatted_payload is not None:
             default_unformatted_payload = unformatted_payload
 
-        payload = {'data': json.dumps(default_unformatted_payload)}
-        response = r('POST', url, data=payload, headers=headers).json()
+
+        payload = {'data': json.dumps(default_unformatted_payload )}
+        response = r('POST', url, data=payload, headers=headers, proxies=proxy).json()
 
         return response
 
@@ -73,7 +81,8 @@ class EdBot:
         response_notes = \
             self.request_post('https://api.ecoledirecte.com/v3/eleves/'
                               + self.eleve_id
-                              + '/notes.awp?verbe=get&'
+                              + '/notes.awp?verbe=get&',
+                              proxy=self.proxy
                               )
         raw_notes = response_notes['data']
         pop_list = ['idPeriode',
@@ -145,7 +154,9 @@ class EdBot:
                 + self.eleve_id
                 + '/cahierdetexte/'
                 + date
-                + '.awp?verbe=get&')
+                + '.awp?verbe=get&',
+                proxy=self.proxy
+            )
 
 
         return response_homework
