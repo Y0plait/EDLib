@@ -15,10 +15,11 @@ class EdBot:
         Connect to the api with username and password
         :username:  username of user's account
         :password:  password of user's account
-
+        :headers: custom headers if you want ones
         Returns True if connection is ok
         Else returns False
         """
+
         api_login_url = 'https://api.ecoledirecte.com/v3/login.awp'
         unformatted_login = {
             'identifiant': username,
@@ -26,8 +27,8 @@ class EdBot:
             'acceptationCharte': True
         }
 
-        payload = {'data': json.dumps(unformatted_login)}
-        self.response = r('POST', api_login_url, data=payload).json()
+        self.response = self.request_post(api_login_url, unformatted_login)
+
         try:
             self.token = str(self.response['token'])
             self.eleve_id = str(self.response['data']['accounts'][0]['id'])
@@ -36,18 +37,52 @@ class EdBot:
             raise LoginException('Please check your login ...')
             pass
 
+    def request_post(self, url, unformatted_payload=None, headers=None):
+        """
+        Method to connect to the EcoleDirecte Api
+        :url: url to connect
+        :unformatted_payload: raw payload if None default one will be used (token)
+        :headers: headers if None default will be used
+        :return: raw data from the request
+        """
+
+
+        if headers is None:
+            headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:87.0) Gecko/20100101 Firefox/87.0"}
+        elif headers is not None:
+            headers = headers
+
+        if unformatted_payload is None:
+            default_unformatted_payload = {
+                'token': self.token
+            }
+        elif unformatted_payload is not None:
+            default_unformatted_payload = unformatted_payload
+
+        payload = {'data': json.dumps(default_unformatted_payload)}
+        response = r('POST', url, data=payload, headers=headers).json()
+
+        return response
+
     def fetch_notes(self):
         """
         Method to get notes from the API
         :return: Returns tuple with notes
         """
-        unformatted_payload = {
-            'token': self.token
-        }
-        payload = {'data': json.dumps(unformatted_payload)}
-        response_notes = r('POST', self.api_notes_url, data=payload).json()
+
+        response_notes = \
+            self.request_post('https://api.ecoledirecte.com/v3/eleves/'
+                              + self.eleve_id
+                              + '/notes.awp?verbe=get&'
+                              )
         raw_notes = response_notes['data']
-        pop_list = ['idPeriode', 'codePeriode', 'annuel', 'examenBlanc', 'cloture', 'moyNbreJoursApresConseil']
+        pop_list = ['idPeriode',
+                    'codePeriode',
+                    'annuel',
+                    'examenBlanc',
+                    'cloture',
+                    'moyNbreJoursApresConseil']
+
         for j in range(0, 3):
             for i in range(0, len(pop_list)):
                 raw_notes['periodes'][j].pop(pop_list[i])
@@ -64,11 +99,16 @@ class EdBot:
 
         return trimestre_1, trimestre_2, trimestre_3, annee, notes
 
+    def format_notes(self):
+        notes =self.fetch_notes()
+
+
     def get_information(self):
         """
         Method that uses the login response to find information such as name email ...
         :return: information which is a dict
         """
+
         # TODO information.update({'NombreAnneesDansEtablissement':''})
 
         information = {}
@@ -92,6 +132,20 @@ class EdBot:
 
         return information
 
+    def get_homework(self, date):
+        """
+        Method to get the homework with the date
+        :date: date format should be like this : yyyy-mm-dd
+        :return:
+        """
 
-class dz:
-    pass
+        response_homework = \
+            self.request_post(
+                'https://api.ecoledirecte.com/v3/eleves/'
+                + self.eleve_id
+                + '/cahierdetexte/'
+                + date
+                + '.awp?verbe=get&')
+
+
+        return response_homework
